@@ -1,0 +1,16 @@
+:root {
+    --cor-fundo-principal: #FFFFFF;
+    --cor-fundo-lateral: #F5F5F3;
+    --cor-texto-principal: #232323;
+    --cor-texto-secundario: #8A8A86;
+    --cor-divisoria: #E8E8E4;
+    --cor-acento: #3F6FB5;
+    --cor-prazo-vencido: #C2473B;
+
+    --fonte-interface: "DM Sans", sans-serif;
+    --largura-barra-lateral: 220px;
+    --largura-lista: 680px;
+    --altura-linha-tarefa: 44px;
+    --raio-controle: 6px;
+    --duracao-interacao: 180ms;
+}

@@ -4,7 +4,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import org.springframework.web.bind.annotation.RequestBody;
 
 
 @Entity
@@ -17,6 +16,8 @@ public class TarefaModel {
     private String titulo;
     private String descricao;
     private boolean concluido;
+    private String prioridade = "MEDIA";
+    private String dataEntrega;
 
     public TarefaModel() {
     }
@@ -51,5 +52,21 @@ public class TarefaModel {
 
     public void setConcluido(boolean concluido) {
         this.concluido = concluido;
+    }
+
+    public String getPrioridade() {
+        return prioridade;
+    }
+
+    public void setPrioridade(String prioridade) {
+        this.prioridade = prioridade;
+    }
+
+    public String getDataEntrega() {
+        return dataEntrega;
+    }
+
+    public void setDataEntrega(String dataEntrega) {
+        this.dataEntrega = dataEntrega;
     }
 }

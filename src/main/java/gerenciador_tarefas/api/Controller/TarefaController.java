@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/Tarefas")
+@RequestMapping("/tarefas")
 public class TarefaController {
 
     @Autowired
@@ -56,6 +56,8 @@ public class TarefaController {
         tarefaAtualizada.setTitulo(dadosNovos.getTitulo());
         tarefaAtualizada.setDescricao(dadosNovos.getDescricao());
         tarefaAtualizada.setConcluido(dadosNovos.isConcluido());
+        tarefaAtualizada.setPrioridade(dadosNovos.getPrioridade());
+        tarefaAtualizada.setDataEntrega(dadosNovos.getDataEntrega());
 
         TarefaModel tarefaSalva = tarefaRepository.save(tarefaAtualizada);
         return ResponseEntity.ok(tarefaSalva);
@@ -71,4 +73,3 @@ public class TarefaController {
         return ResponseEntity.noContent().build();
     }
 }
-
