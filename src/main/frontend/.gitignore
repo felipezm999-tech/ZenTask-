@@ -1,2 +1,4 @@
-file.txt
-file.txt
+node_modules/
+dist/
+*.tsbuildinfo
+.env*

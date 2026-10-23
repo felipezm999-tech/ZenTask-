@@ -1,6 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import type { KeyboardEvent, RefObject } from "react";
-import { CampoNovaTarefa } from "./CampoNovaTarefa";
+import type { KeyboardEvent } from "react";
 import { ItemTarefa } from "./ItemTarefa";
 import type { DadosTarefa, Tarefa } from "../types/tarefa";
 import { adicionarDias, dataLocalDeIso, diasDoMes, hojeLocal, isoDeDataLocal, mesmaData } from "../utils/datas";
@@ -10,14 +9,23 @@ type CalendarioTarefasProps = {
     carregando: boolean;
     erro: string | null;
     recarregar: () => void;
-    criar: (dados: DadosTarefa) => Promise<Tarefa>;
+    aoSelecionarTodas: () => void;
     atualizar: (id: number, dados: DadosTarefa) => Promise<void>;
     concluir: (id: number, concluido: boolean) => Promise<void>;
     excluir: (id: number) => Promise<void>;
-    refNovaTarefa: RefObject<HTMLInputElement | null>;
 };
 
-const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const FORMATADOR_MES = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" });
+const FORMATADOR_DIA_SEMANA = new Intl.DateTimeFormat("pt-BR", { weekday: "long" });
+const FORMATADOR_DIA_COMPLETO = new Intl.DateTimeFormat("pt-BR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+});
+const DIAS_SEMANA = Array.from({ length: 7 }, (_, indice) =>
+    FORMATADOR_DIA_SEMANA.format(new Date(2026, 0, 4 + indice)).slice(0, 1).toLocaleUpperCase("pt-BR")
+);
 
 export function CalendarioTarefas(props: CalendarioTarefasProps) {
     const hoje = hojeLocal();
@@ -64,42 +72,70 @@ export function CalendarioTarefas(props: CalendarioTarefasProps) {
         } else if (evento.key === "Enter" || evento.key === " ") {
             evento.preventDefault();
             setDiaAtivo(isoDeDataLocal(data));
+        } else if (evento.key === "Escape") {
+            evento.preventDefault();
+            focarDia(diaAtivo);
         }
     }
 
     const tarefasDoDia = tarefasComData.get(diaAtivo) ?? [];
-    const tituloDia = dataLocalDeIso(diaAtivo).toLocaleDateString("pt-BR", {
-        weekday: "long",
-        day: "numeric",
-        month: "long"
-    });
+    const tituloDia = FORMATADOR_DIA_COMPLETO.format(dataLocalDeIso(diaAtivo));
+    const chaveMes = `${mesVisivel.getFullYear()}-${mesVisivel.getMonth()}`;
 
     return (
-        <section className="calendario" aria-label="Calendário de tarefas">
+        <section className="calendario liquid-glass" aria-label="Calendário de tarefas">
             <div className="cabecalho-calendario">
-                <h2>{mesVisivel.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}</h2>
+                <h2>{FORMATADOR_MES.format(mesVisivel)}</h2>
                 <div className="controles-calendario">
-                    <button type="button" className="botao-texto" onClick={() => moverMes(-1)} aria-label="Mês anterior">‹</button>
+                    <button
+                        type="button"
+                        className="botao-calendario"
+                        onClick={() => moverMes(-1)}
+                        aria-label="Mês anterior"
+                    >
+                        <IconeSeta direcao="anterior" />
+                    </button>
                     <button type="button" className="botao-texto" onClick={() => {
                         setMesVisivel(new Date(hoje.getFullYear(), hoje.getMonth(), 1));
                         setDiaAtivo(isoDeDataLocal(hoje));
                         focarDia(isoDeDataLocal(hoje));
                     }}>Hoje</button>
-                    <button type="button" className="botao-texto" onClick={() => moverMes(1)} aria-label="Próximo mês">›</button>
+                    <button
+                        type="button"
+                        className="botao-calendario"
+                        onClick={() => moverMes(1)}
+                        aria-label="Próximo mês"
+                    >
+                        <IconeSeta direcao="proximo" />
+                    </button>
                 </div>
             </div>
-            <div className="grade-calendario" role="grid" aria-label={mesVisivel.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}>
+            <div
+                className="grade-calendario"
+                role="grid"
+                key={chaveMes}
+                aria-label={`Calendário de ${FORMATADOR_MES.format(mesVisivel)}`}
+            >
                 {DIAS_SEMANA.map((dia, indice) => (
-                    <div className="cabecalho-dia-semana" role="columnheader" key={`${dia}-${indice}`} aria-label={dia}>{dia}</div>
+                    <div
+                        className={`cabecalho-dia-semana${indice === 0 || indice === 6 ? " fim-de-semana" : ""}`}
+                        role="columnheader"
+                        key={`${dia}-${indice}`}
+                        aria-label={FORMATADOR_DIA_SEMANA.format(new Date(2026, 0, 4 + indice))}
+                    >
+                        {dia}
+                    </div>
                 ))}
                 {dias.map((data) => {
                     const chave = isoDeDataLocal(data);
                     const tarefas = tarefasComData.get(chave) ?? [];
                     const pendentes = tarefas.filter((tarefa) => !tarefa.concluido);
-                    const concluidas = tarefas.filter((tarefa) => tarefa.concluido);
                     const foraDoMes = data.getMonth() !== mesVisivel.getMonth();
                     const selecionado = chave === diaAtivo;
                     const focado = chave === diaFocado;
+                    const vencida = pendentes.length > 0 && chave < isoDeDataLocal(hoje);
+                    const todasConcluidas = tarefas.length > 0 && pendentes.length === 0;
+                    const fimDeSemana = data.getDay() === 0 || data.getDay() === 6;
                     return (
                         <button
                             key={chave}
@@ -107,11 +143,13 @@ export function CalendarioTarefas(props: CalendarioTarefasProps) {
                                 if (elemento) botoesDias.current.set(chave, elemento);
                                 else botoesDias.current.delete(chave);
                             }}
-                            className={`dia-calendario${foraDoMes ? " fora-do-mes" : ""}${mesmaData(data, hoje) ? " dia-hoje" : ""}${selecionado ? " dia-selecionado" : ""}`}
+                            className={`dia-calendario${foraDoMes ? " fora-do-mes" : ""}${fimDeSemana ? " fim-de-semana" : ""}${mesmaData(data, hoje) ? " dia-hoje" : ""}${selecionado ? " dia-selecionado" : ""}`}
                             type="button"
                             role="gridcell"
                             tabIndex={focado ? 0 : -1}
-                            aria-label={`${data.toLocaleDateString("pt-BR", { day: "numeric", month: "long" })}, ${tarefas.length} ${tarefas.length === 1 ? "tarefa" : "tarefas"}`}
+                            aria-current={mesmaData(data, hoje) ? "date" : undefined}
+                            aria-selected={selecionado}
+                            aria-label={`${FORMATADOR_DIA_COMPLETO.format(data)}, ${tarefas.length} ${tarefas.length === 1 ? "tarefa" : "tarefas"}`}
                             onClick={() => {
                                 setDiaAtivo(chave);
                                 focarDia(chave);
@@ -119,13 +157,12 @@ export function CalendarioTarefas(props: CalendarioTarefasProps) {
                             onKeyDown={(evento) => tratarTeclaDia(evento, data)}
                         >
                             <span className="numero-dia">{data.getDate()}</span>
-                            <span className="marcadores-dia" aria-hidden="true">
-                                {pendentes.slice(0, 3).map((tarefa) => (
-                                    <i key={tarefa.id} className={`marcador-tarefa${chave < isoDeDataLocal(hoje) ? " marcador-vencido" : ""}`} />
-                                ))}
-                                {pendentes.length > 3 && <small>+{pendentes.length - 3}</small>}
-                                {pendentes.length === 0 && concluidas.length > 0 && <i className="marcador-concluido" />}
-                            </span>
+                            {tarefas.length > 0 && (
+                                <span
+                                    className={`marcador-tarefa${vencida ? " marcador-vencido" : todasConcluidas ? " marcador-concluido" : ""}`}
+                                    aria-hidden="true"
+                                />
+                            )}
                         </button>
                     );
                 })}
@@ -141,12 +178,6 @@ export function CalendarioTarefas(props: CalendarioTarefasProps) {
                     </div>
                 ) : (
                     <>
-                        <CampoNovaTarefa
-                            key={diaAtivo}
-                            aoCriar={props.criar}
-                            referenciaTitulo={props.refNovaTarefa}
-                            dataInicial={diaAtivo}
-                        />
                         {tarefasDoDia.length
                             ? tarefasDoDia.map((tarefa) => (
                                 <ItemTarefa
@@ -160,10 +191,31 @@ export function CalendarioTarefas(props: CalendarioTarefasProps) {
                                     aoFecharEdicao={() => setTarefaEditando(null)}
                                 />
                             ))
-                            : <p className="estado-vazio">Nenhuma tarefa neste dia.</p>}
+                            : (
+                                <div className="estado-vazio">
+                                    <span className="icone-estado-vazio" aria-hidden="true">☼</span>
+                                    <p>Nenhuma tarefa aqui. Para criar uma, vá para a aba Todas.</p>
+                                    <button className="botao-texto" type="button" onClick={props.aoSelecionarTodas}>
+                                        Ir para Todas
+                                    </button>
+                                </div>
+                            )}
                     </>
                 )}
             </section>
         </section>
+    );
+}
+
+function IconeSeta({ direcao }: { direcao: "anterior" | "proximo" }) {
+    return (
+        <svg
+            aria-hidden="true"
+            viewBox="0 0 20 20"
+            fill="none"
+            className={direcao === "anterior" ? "seta-anterior" : undefined}
+        >
+            <path d="m7.5 4.5 5.5 5.5-5.5 5.5" />
+        </svg>
     );
 }

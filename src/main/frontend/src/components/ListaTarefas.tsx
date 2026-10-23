@@ -4,7 +4,7 @@ import type { DadosTarefa, Tarefa } from "../types/tarefa";
 import type { FiltroTarefas } from "../types/filtros";
 import { CampoNovaTarefa } from "./CampoNovaTarefa";
 import { ItemTarefa } from "./ItemTarefa";
-import { hojeLocal, isoDeDataLocal } from "../utils/datas";
+import { filtrarTarefas } from "../utils/filtrosTarefas";
 
 type ListaTarefasProps = {
     tarefas: Tarefa[];
@@ -13,6 +13,7 @@ type ListaTarefasProps = {
     erro: string | null;
     recarregar: () => void;
     criar: (dados: DadosTarefa) => Promise<Tarefa>;
+    aoSelecionarTodas: () => void;
     atualizar: (id: number, dados: DadosTarefa) => Promise<void>;
     concluir: (id: number, concluido: boolean) => Promise<void>;
     excluir: (id: number) => Promise<void>;
@@ -27,6 +28,7 @@ export function ListaTarefas({
     erro,
     recarregar,
     criar,
+    aoSelecionarTodas,
     atualizar,
     concluir,
     excluir,
@@ -35,14 +37,7 @@ export function ListaTarefas({
 }: ListaTarefasProps) {
     const [concluidasAbertas, setConcluidasAbertas] = useState(false);
     const [tarefaEditando, setTarefaEditando] = useState<number | null>(null);
-    const hoje = isoDeDataLocal(hojeLocal());
-    const tarefasFiltradas = filtro === "hoje"
-        ? tarefas.filter((tarefa) => !tarefa.concluido && tarefa.dataEntrega === hoje)
-        : filtro === "proximos-dias"
-            ? tarefas.filter((tarefa) => !tarefa.concluido && Boolean(tarefa.dataEntrega) && tarefa.dataEntrega! > hoje)
-            : filtro === "atrasadas"
-                ? tarefas.filter((tarefa) => !tarefa.concluido && Boolean(tarefa.dataEntrega) && tarefa.dataEntrega! < hoje)
-                : tarefas;
+    const tarefasFiltradas = filtrarTarefas(tarefas, filtro);
     const pendentes = tarefasFiltradas.filter((tarefa) => !tarefa.concluido);
     const concluidas = tarefasFiltradas.filter((tarefa) => tarefa.concluido);
 
@@ -76,10 +71,9 @@ export function ListaTarefas({
     if (filtro === "pendentes") {
         return (
             <section className="lista-por-filtro" aria-label="Tarefas pendentes">
-                <CampoNovaTarefa key={dataNovaTarefa ?? "sem-data"} aoCriar={criar} referenciaTitulo={refNovaTarefa} dataInicial={dataNovaTarefa} />
                 {pendentes.length
                     ? pendentes.map(linha)
-                    : <EstadoVazio mensagem={mensagemVazia(filtro)} />}
+                    : <EstadoVazio mensagem={mensagemVazia(filtro)} aoSelecionarTodas={aoSelecionarTodas} />}
             </section>
         );
     }
@@ -89,7 +83,17 @@ export function ListaTarefas({
             <section className="lista-por-filtro" aria-label="Tarefas concluídas">
                 {concluidas.length
                     ? concluidas.map(linha)
-                    : <EstadoVazio mensagem="Nenhuma tarefa concluída." />}
+                : <EstadoVazio mensagem="Nenhuma tarefa aqui. Para criar uma, vá para a aba Todas." aoSelecionarTodas={aoSelecionarTodas} />}
+            </section>
+        );
+    }
+
+    if (filtro !== "todas") {
+        return (
+            <section className="lista-por-filtro" aria-label={`Tarefas: ${filtro}`}>
+                {pendentes.length
+                    ? pendentes.map(linha)
+                : <EstadoVazio mensagem="Nenhuma tarefa aqui. Para criar uma, vá para a aba Todas." aoSelecionarTodas={aoSelecionarTodas} />}
             </section>
         );
     }
@@ -99,7 +103,7 @@ export function ListaTarefas({
             <CampoNovaTarefa key={dataNovaTarefa ?? "sem-data"} aoCriar={criar} referenciaTitulo={refNovaTarefa} dataInicial={dataNovaTarefa} />
             {pendentes.length
                 ? pendentes.map(linha)
-                : <EstadoVazio mensagem={mensagemVazia(filtro)} />}
+                : <EstadoVazio mensagem="Nenhuma tarefa ainda. Que tal criar a primeira?" />}
             {concluidas.length > 0 && (
                 <section className="secao-concluidas">
                     <button
@@ -119,12 +123,22 @@ export function ListaTarefas({
     );
 }
 
-function EstadoVazio({ mensagem }: { mensagem: string }) {
-    return <p className="estado-vazio">{mensagem}</p>;
+function EstadoVazio({ mensagem, aoSelecionarTodas }: { mensagem: string; aoSelecionarTodas?: () => void }) {
+    return (
+        <div className="estado-vazio">
+            <span className="icone-estado-vazio" aria-hidden="true">☼</span>
+            <p>{mensagem}</p>
+            {aoSelecionarTodas && (
+                <button className="botao-texto" type="button" onClick={aoSelecionarTodas}>Ir para Todas</button>
+            )}
+        </div>
+    );
 }
 
 function mensagemVazia(filtro: FiltroTarefas): string {
     const mensagens: Partial<Record<FiltroTarefas, string>> = {
+        pendentes: "Nenhuma tarefa aqui. Para criar uma nova tarefa, vá para a aba Todas.",
+        concluidas: "Nenhuma tarefa aqui. Para criar uma nova tarefa, vá para a aba Todas.",
         hoje: "Nenhuma tarefa para hoje.",
         "proximos-dias": "Nenhuma tarefa para os próximos dias.",
         atrasadas: "Nenhuma tarefa atrasada."

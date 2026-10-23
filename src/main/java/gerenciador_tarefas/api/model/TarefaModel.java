@@ -8,11 +8,9 @@ import jakarta.persistence.Id;
 
 @Entity
 public class TarefaModel {
-
-
-    @Id // Fica em cima do atributo ID
+    @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; // Você precisa declarar essa variável para o @Id funcionar!
+    private Long id;
     private String titulo;
     private String descricao;
     private boolean concluido;

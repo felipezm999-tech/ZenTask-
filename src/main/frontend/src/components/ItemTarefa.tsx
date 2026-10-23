@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import type { FormEvent, KeyboardEvent } from "react";
 import { mensagemErroDoCampo } from "../api/tarefas";
 import type { DadosTarefa, Prioridade, Tarefa } from "../types/tarefa";
-import { rotuloDataEntrega } from "../utils/datas";
+import { hojeLocal, isoDeDataLocal, rotuloDataEntrega } from "../utils/datas";
 
 type ItemTarefaProps = {
     tarefa: Tarefa;
@@ -109,7 +109,7 @@ export function ItemTarefa({ tarefa, aoConcluir, aoAtualizar, aoExcluir, editand
     if (editando) {
         return (
             <form
-                className="item-tarefa item-editando"
+                className="item-tarefa item-editando liquid-glass"
                 ref={formulario}
                 onKeyDown={tratarTecla}
                 onSubmit={enviarEdicao}
@@ -175,9 +175,12 @@ export function ItemTarefa({ tarefa, aoConcluir, aoAtualizar, aoExcluir, editand
     }
 
     const temDescricao = Boolean(tarefa.descricao?.trim());
+    const dataHoje = isoDeDataLocal(hojeLocal());
+    const tarefaDeHoje = !tarefa.concluido && tarefa.dataEntrega === dataHoje;
+    const tarefaAtrasada = !tarefa.concluido && Boolean(tarefa.dataEntrega && tarefa.dataEntrega < dataHoje);
 
     return (
-        <article className={`item-tarefa${tarefa.concluido ? " tarefa-concluida" : ""}`}>
+        <article className={`item-tarefa liquid-glass${tarefa.concluido ? " tarefa-concluida" : ""}${tarefaDeHoje ? " tarefa-hoje" : ""}${tarefaAtrasada ? " tarefa-atrasada" : ""}`}>
             <input
                 className="checkbox-tarefa"
                 type="checkbox"
@@ -211,27 +214,38 @@ export function ItemTarefa({ tarefa, aoConcluir, aoAtualizar, aoExcluir, editand
                 return data && <time className={`data-entrega${data.vencida ? " vencida" : ""}`} dateTime={tarefa.dataEntrega ?? undefined}>{data.texto}</time>;
             })()}
             <span className={`etiqueta-prioridade prioridade-${prioridadeValida(tarefa.prioridade).toLocaleLowerCase("pt-BR")}`}>
-                {tarefa.prioridade === "ALTA" && <><span className="ponto-alta" aria-hidden="true" />{rotuloPrioridade(tarefa.prioridade)}</>}
-                {tarefa.prioridade === "BAIXA" && rotuloPrioridade(tarefa.prioridade)}
-                {tarefa.prioridade === "MEDIA" && rotuloPrioridade(tarefa.prioridade)}
+                {rotuloPrioridade(tarefa.prioridade)}
             </span>
-            {confirmandoExclusao ? (
-                <span className="confirmacao-exclusao">
-                    <span>Excluir?</span>
-                    <button className="botao-texto acao-perigosa" type="button" onClick={() => void confirmarExclusao()} disabled={salvando}>Sim</button>
-                    <button className="botao-texto" type="button" onClick={() => setConfirmandoExclusao(false)}>Não</button>
-                </span>
-            ) : (
-                <button
-                    className="botao-excluir"
-                    type="button"
-                    onClick={() => setConfirmandoExclusao(true)}
-                    aria-label={`Excluir ${tarefa.titulo}`}
-                    title="Excluir tarefa"
-                >
-                    <IconeLixeira />
-                </button>
-            )}
+            <div className="acoes-tarefa">
+                {confirmandoExclusao ? (
+                    <span className="confirmacao-exclusao">
+                        <span>Excluir?</span>
+                        <button className="botao-texto acao-perigosa" type="button" onClick={() => void confirmarExclusao()} disabled={salvando}>Sim</button>
+                        <button className="botao-texto" type="button" onClick={() => setConfirmandoExclusao(false)}>Não</button>
+                    </span>
+                ) : (
+                    <>
+                        <button
+                            className="botao-acao-tarefa"
+                            type="button"
+                            onClick={abrirEdicao}
+                            aria-label={`Editar ${tarefa.titulo}`}
+                            title="Editar tarefa"
+                        >
+                            <IconeEditar />
+                        </button>
+                        <button
+                            className="botao-acao-tarefa botao-excluir"
+                            type="button"
+                            onClick={() => setConfirmandoExclusao(true)}
+                            aria-label={`Excluir ${tarefa.titulo}`}
+                            title="Excluir tarefa"
+                        >
+                            <IconeLixeira />
+                        </button>
+                    </>
+                )}
+            </div>
             {erro && <span className="erro-item" role="alert">{erro}</span>}
         </article>
     );
@@ -241,6 +255,14 @@ function IconeLixeira() {
     return (
         <svg aria-hidden="true" viewBox="0 0 16 16" fill="none">
             <path d="M2.5 4.5h11M6 4.5V3h4v1.5m2.5 0-.6 8H4.1l-.6-8m3 2v3.5m3-3.5V10" />
+        </svg>
+    );
+}
+
+function IconeEditar() {
+    return (
+        <svg aria-hidden="true" viewBox="0 0 16 16" fill="none">
+            <path d="m10.8 2.7 2.5 2.5M3 13l2.5-.5 7.8-7.8a1.8 1.8 0 0 0-2.5-2.5L3 10l-.5 3Z" />
         </svg>
     );
 }
