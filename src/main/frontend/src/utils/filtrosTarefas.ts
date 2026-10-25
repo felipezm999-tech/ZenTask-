@@ -1,3 +1,4 @@
+import type { FiltroCategoria } from "../types/categoria";
 import type { FiltroTarefas } from "../types/filtros";
 import type { Tarefa } from "../types/tarefa";
 import { hojeLocal, isoDeDataLocal } from "./datas";
@@ -42,4 +43,11 @@ export function contarTarefas(tarefas: Tarefa[]): QuantidadesTarefas {
         "proximos-dias": filtrarTarefasNaData(tarefas, "proximos-dias", hoje).length,
         atrasadas: filtrarTarefasNaData(tarefas, "atrasadas", hoje).length
     };
+}
+
+export function filtrarPorCategoria(tarefas: Tarefa[], categoria: FiltroCategoria): Tarefa[] {
+    if (categoria === "todas") return tarefas;
+    return tarefas.filter(tarefa => categoria === "sem"
+        ? tarefa.categoriaId === null
+        : tarefa.categoriaId === categoria);
 }

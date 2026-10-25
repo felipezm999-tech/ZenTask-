@@ -1,0 +1,266 @@
+/* Superfícies e navegação */
+.barra-lateral {
+    z-index: 5;
+}
+.cabecalho-categorias {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 28px;
+}
+.cabecalho-categorias button {
+    min-width: 36px;
+    min-height: 36px;
+    font-size: 24px;
+}
+.navegacao-categorias {
+    display: grid;
+    gap: 4px;
+}
+.linha-categoria {
+    display: grid;
+    grid-template-columns: minmax(0,1fr) 28px 28px;
+    align-items: center;
+}
+.linha-categoria .filtro-link {
+    min-width: 0;
+    gap: 6px;
+    padding: 8px;
+}
+.linha-categoria .filtro-identidade {
+    gap: 7px;
+    overflow-wrap: anywhere;
+}
+.acao-categoria {
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--texto-secundario);
+    min-height: 36px;
+    padding: 0;
+}
+.acao-categoria:hover {
+    background: var(--cor-hover-controle);
+}
+.ponto-categoria {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    flex: 0 0 10px;
+    border-radius: 50%;
+}
+.selos-tarefa {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    max-width: 220px;
+}
+.selo-categoria {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 7px;
+    border: 1px solid var(--borda);
+    border-radius: 8px;
+    color: var(--cor-texto-principal);
+    background: var(--superficie-elevada);
+    font-size: 12px;
+    overflow-wrap: anywhere;
+}
+.seletor-categoria {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 7px;
+    color: var(--texto-secundario);
+    font-size: 13px;
+}
+.seletor-categoria select {
+    max-width: 100%;
+    min-width: 0;
+    min-height: 36px;
+    border: 1px solid var(--borda);
+    border-radius: 8px;
+    padding: 6px;
+    background: var(--superficie-elevada);
+    color: var(--cor-texto-principal);
+}
+.filtros-categoria {
+    display: flex;
+    gap: 7px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+.aviso-criacao {
+    margin-bottom: 18px;
+    padding: 12px;
+    background: var(--superficie);
+    border: 1px solid var(--borda);
+    border-radius: 10px;
+    color: var(--texto-secundario);
+    font-size: 14px;
+}
+.aviso-criacao p {
+    margin: 0 0 8px;
+}
+.marcadores-dia {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 3px;
+    min-height: 5px;
+}
+.item-tarefa.item-editando {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    gap: 12px;
+}
+.item-editando .campo-edicao {
+    width: 100%;
+    min-width: 0;
+    border: 1px solid var(--borda);
+    border-radius: 6px;
+    background: var(--superficie-elevada);
+}
+.item-editando .descricao-edicao {
+    grid-column: auto;
+}
+.item-editando .seletor-categoria {
+    grid-column: 1 / -1;
+}
+.botao-texto {
+    min-height: 36px;
+}
+.modal-categoria {
+    width: min(440px,calc(100vw - 32px));
+    max-height: calc(100dvh - 32px);
+    padding: 24px;
+    border: 1px solid var(--borda);
+    border-radius: 14px;
+    background: var(--superficie-elevada);
+    color: var(--cor-texto-principal);
+    box-shadow: var(--sombra);
+}
+.modal-categoria form {
+    display: grid;
+    gap: 18px;
+    min-width: 0;
+}
+.modal-categoria h2 {
+    margin: 0;
+    font-size: 21px;
+}
+.modal-categoria p {
+    margin: 0;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+}
+.modal-categoria label {
+    display: grid;
+    gap: 8px;
+    font-size: 14px;
+}
+.modal-categoria input {
+    width: 100%;
+    min-width: 0;
+    padding: 10px;
+    border: 1px solid var(--borda);
+    border-radius: 8px;
+    background: var(--superficie);
+}
+.paleta-categoria {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid var(--borda);
+    border-radius: 8px;
+}
+.cor-paleta {
+    width: 36px;
+    height: 36px;
+    border: 2px solid transparent;
+    border-radius: 50%;
+    color: white;
+    font-size: 0;
+}
+.cor-paleta[aria-pressed="true"] {
+    outline: 2px solid var(--cor-texto-principal);
+    outline-offset: 3px;
+    border-color: var(--superficie-elevada);
+}
+.acoes-modal {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 16px;
+}
+.erro-categoria {
+    color: var(--cor-prazo-vencido);
+}
+.botao-acao-tarefa {
+    opacity: 1;
+}
+@media (min-width:768px) and (max-width:1100px) {
+    .conteudo-principal {
+        padding: 36px 24px;
+    }
+    .item-tarefa {
+        grid-template-columns: 20px minmax(0,1fr) auto;
+    }
+    .selos-tarefa {
+        grid-column: 2;
+        justify-content: flex-start;
+        max-width: none;
+    }
+    .acoes-tarefa {
+        grid-column: 3;
+        grid-row: 2;
+    }
+}
+@media (max-width:767px) {
+    .barra-lateral {
+        width: min(310px,calc(100vw - 32px));
+    }
+    .barra-lateral.menu-aberto {
+        z-index: 12;
+    }
+    .item-tarefa {
+        grid-template-columns: 20px minmax(0,1fr) auto;
+    }
+    .conteudo-tarefa {
+        grid-column: 2 / -1;
+        grid-row: 1;
+    }
+    .data-entrega {
+        grid-column: 2;
+    }
+    .selos-tarefa {
+        grid-column: 2 / -1;
+        justify-content: flex-start;
+        max-width: none;
+    }
+    .acoes-tarefa {
+        grid-column: 2 / -1;
+    }
+    .cabecalho-calendario {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .grade-calendario {
+        grid-template-columns: repeat(7,minmax(0,1fr));
+        min-width: 0;
+    }
+    .cabecalho-dia-semana, .dia-calendario {
+        min-height: 36px;
+    }
+}
+.cabecalho-pagina h1 {
+    overflow-wrap: anywhere;
+}
+.filtros-categoria .chip-data {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}

@@ -1,12 +1,14 @@
 import { useState } from "react";
 import type { RefObject } from "react";
-import type { DadosTarefa, Tarefa } from "../types/tarefa";
-import type { FiltroTarefas } from "../types/filtros";
+import type { DadosTarefa, Tarefa } from "../../types/tarefa";
+import type { FiltroTarefas } from "../../types/filtros";
 import { CampoNovaTarefa } from "./CampoNovaTarefa";
 import { ItemTarefa } from "./ItemTarefa";
-import { filtrarTarefas } from "../utils/filtrosTarefas";
+import { filtrarTarefas } from "../../utils/filtrosTarefas";
 
 type ListaTarefasProps = {
+    permitirCriacao?: boolean;
+    mensagemCategoria?: string;
     tarefas: Tarefa[];
     filtro: FiltroTarefas;
     carregando: boolean;
@@ -22,6 +24,7 @@ type ListaTarefasProps = {
 };
 
 export function ListaTarefas({
+    permitirCriacao = true, mensagemCategoria,
     tarefas,
     filtro,
     carregando,
@@ -35,7 +38,7 @@ export function ListaTarefas({
     refNovaTarefa,
     dataNovaTarefa = null
 }: ListaTarefasProps) {
-    const [concluidasAbertas, setConcluidasAbertas] = useState(false);
+    const [concluidasAbertas, setConcluidasAbertas] = useState(!permitirCriacao);
     const [tarefaEditando, setTarefaEditando] = useState<number | null>(null);
     const tarefasFiltradas = filtrarTarefas(tarefas, filtro);
     const pendentes = tarefasFiltradas.filter((tarefa) => !tarefa.concluido);
@@ -83,7 +86,7 @@ export function ListaTarefas({
             <section className="lista-por-filtro" aria-label="Tarefas concluídas">
                 {concluidas.length
                     ? concluidas.map(linha)
-                : <EstadoVazio mensagem="Nenhuma tarefa aqui. Para criar uma, vá para a aba Todas." aoSelecionarTodas={aoSelecionarTodas} />}
+                    : <EstadoVazio mensagem="Nenhuma tarefa aqui. Para criar uma, vá para a aba Todas." aoSelecionarTodas={aoSelecionarTodas} />}
             </section>
         );
     }
@@ -93,17 +96,17 @@ export function ListaTarefas({
             <section className="lista-por-filtro" aria-label={`Tarefas: ${filtro}`}>
                 {pendentes.length
                     ? pendentes.map(linha)
-                : <EstadoVazio mensagem="Nenhuma tarefa aqui. Para criar uma, vá para a aba Todas." aoSelecionarTodas={aoSelecionarTodas} />}
+                    : <EstadoVazio mensagem="Nenhuma tarefa aqui. Para criar uma, vá para a aba Todas." aoSelecionarTodas={aoSelecionarTodas} />}
             </section>
         );
     }
 
     return (
         <section className="lista-todas" aria-label="Todas as tarefas">
-            <CampoNovaTarefa key={dataNovaTarefa ?? "sem-data"} aoCriar={criar} referenciaTitulo={refNovaTarefa} dataInicial={dataNovaTarefa} />
+            {permitirCriacao && <CampoNovaTarefa key={dataNovaTarefa ?? "sem-data"} aoCriar={criar} referenciaTitulo={refNovaTarefa} dataInicial={dataNovaTarefa} />}
             {pendentes.length
                 ? pendentes.map(linha)
-                : <EstadoVazio mensagem="Nenhuma tarefa ainda. Que tal criar a primeira?" />}
+                : tarefasFiltradas.length === 0 ? <EstadoVazio mensagem={mensagemCategoria ?? "Nenhuma tarefa ainda. Que tal criar a primeira?"} /> : null}
             {concluidas.length > 0 && (
                 <section className="secao-concluidas">
                     <button

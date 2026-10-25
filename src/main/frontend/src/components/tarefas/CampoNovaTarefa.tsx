@@ -1,8 +1,9 @@
+import { SeletorCategoria } from "../categorias/SeletorCategoria";
 import { useRef, useState } from "react";
 import type { FormEvent, KeyboardEvent, RefObject } from "react";
-import { mensagemErroDoCampo } from "../api/tarefas";
-import type { DadosTarefa, Prioridade } from "../types/tarefa";
-import { adicionarDias, dataLocalDeIso, hojeLocal, isoDeDataLocal } from "../utils/datas";
+import { mensagemErroDoCampo } from "../../api/tarefas";
+import type { DadosTarefa, Prioridade } from "../../types/tarefa";
+import { adicionarDias, dataLocalDeIso, hojeLocal, isoDeDataLocal } from "../../utils/datas";
 
 type CampoNovaTarefaProps = {
     aoCriar: (dados: DadosTarefa) => Promise<unknown>;
@@ -11,6 +12,7 @@ type CampoNovaTarefaProps = {
 };
 
 export function CampoNovaTarefa({ aoCriar, referenciaTitulo, dataInicial = null }: CampoNovaTarefaProps) {
+    const [categoriaId, setCategoriaId] = useState<number | null>(null);
     const [titulo, setTitulo] = useState("");
     const [descricao, setDescricao] = useState("");
     const [prioridade, setPrioridade] = useState<Prioridade>("MEDIA");
@@ -39,12 +41,14 @@ export function CampoNovaTarefa({ aoCriar, referenciaTitulo, dataInicial = null 
         setErrosCampos({});
         try {
             await aoCriar({
+                categoriaId,
                 titulo: tituloLimpo,
                 descricao: descricao.trim(),
                 prioridade,
                 concluido: false,
                 dataEntrega: dataEntrega || null
             });
+            setCategoriaId(null);
             setTitulo("");
             setDescricao("");
             setPrioridade("MEDIA");
@@ -66,12 +70,17 @@ export function CampoNovaTarefa({ aoCriar, referenciaTitulo, dataInicial = null 
     }
 
     function tratarTecla(evento: KeyboardEvent<HTMLInputElement>) {
+        if (salvando || evento.nativeEvent.isComposing) return;
         if (evento.key === "Escape") {
+            setCategoriaId(null);
             setTitulo("");
+            setDescricao("");
+            setPrioridade("MEDIA");
+            setDataEntrega(dataInicial ? isoDeDataLocal(dataLocalDeIso(dataInicial)) : "");
             setErro("");
             setErrosCampos({});
             setDetalhesAbertos(false);
-            evento.currentTarget.blur();
+            campoTitulo.current?.focus();
         }
     }
 
@@ -86,7 +95,7 @@ export function CampoNovaTarefa({ aoCriar, referenciaTitulo, dataInicial = null 
         : null;
 
     return (
-        <form className={`nova-tarefa liquid-glass${detalhesAbertos ? " detalhes-abertos" : ""}`} onSubmit={enviar}>
+        <form className={`nova-tarefa${detalhesAbertos ? " detalhes-abertos" : ""}`} onSubmit={enviar}>
             <label className="rotulo-oculto" htmlFor="nova-tarefa-titulo">Nova tarefa</label>
             <input
                 ref={campoTitulo}
@@ -118,7 +127,7 @@ export function CampoNovaTarefa({ aoCriar, referenciaTitulo, dataInicial = null 
                 </button>
             )}
             <button
-                className="botao-adicionar liquid-glass"
+                className="botao-adicionar"
                 type="submit"
                 disabled={salvando}
                 aria-label="Criar tarefa"
@@ -144,6 +153,7 @@ export function CampoNovaTarefa({ aoCriar, referenciaTitulo, dataInicial = null 
                         aria-describedby={errosCampos.descricao ? "erro-descricao-nova-tarefa" : undefined}
                     />
                     <div className="opcoes-nova-tarefa">
+                        <SeletorCategoria valor={categoriaId} aoAlterar={setCategoriaId} />
                         <div className="chips-data" role="group" aria-label="Data de entrega">
                             {atalhosData.map((atalho) => (
                                 <button

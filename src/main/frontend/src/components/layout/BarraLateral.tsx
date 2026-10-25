@@ -1,7 +1,13 @@
-import type { CSSProperties } from "react";
-import type { FiltroTarefas } from "../types/filtros";
+import type { Categoria, FiltroCategoria } from "../../types/categoria";
+import type { FiltroTarefas } from "../../types/filtros";
 
 type BarraLateralProps = {
+    categorias: Categoria[];
+    categoriaAtiva: FiltroCategoria;
+    listaCategoria: boolean;
+    semCategoria: number;
+    aoSelecionarCategoria: (id: FiltroCategoria) => void;
+    aoGerenciarCategoria: (categoria: Categoria | null, excluir?: boolean) => void;
     filtroAtivo: FiltroTarefas;
     quantidades: Partial<Record<FiltroTarefas, number>>;
     aoSelecionarFiltro: (filtro: FiltroTarefas) => void;
@@ -20,33 +26,28 @@ const filtros: { id: FiltroTarefas; titulo: string; contagem?: boolean }[] = [
 ];
 
 export function BarraLateral({
+    categorias, categoriaAtiva, listaCategoria, semCategoria, aoSelecionarCategoria, aoGerenciarCategoria,
     filtroAtivo,
     quantidades,
     aoSelecionarFiltro,
     menuAberto,
     aoFecharMenu
 }: BarraLateralProps) {
-    const indiceFiltroAtivo = filtros.findIndex((filtro) => filtro.id === filtroAtivo);
 
     return (
-        <aside className={`barra-lateral liquid-glass${menuAberto ? " menu-aberto" : ""}`} aria-label="Navegação principal">
+        <aside className={`barra-lateral${menuAberto ? " menu-aberto" : ""}`} aria-label="Navegação principal">
             <a className="marca" href="/" aria-label="ZenTask, início">ZenTask</a>
             <div className="cabecalho-barra-lateral">
                 <p className="rotulo-navegacao">LISTAS</p>
                 <button className="botao-fechar-menu" type="button" onClick={aoFecharMenu} aria-label="Fechar menu">×</button>
             </div>
             <nav className="navegacao-filtros" aria-label="Filtros de tarefas">
-                <span
-                    className="indicador-filtro liquid-glass"
-                    aria-hidden="true"
-                    style={{ "--indice-filtro": indiceFiltroAtivo } as CSSProperties}
-                />
                 {filtros.map((filtro) => (
                     <button
-                        className={`filtro-link${filtroAtivo === filtro.id ? " ativo" : ""}`}
+                        className={`filtro-link${!listaCategoria && filtroAtivo === filtro.id ? " ativo" : ""}`}
                         key={filtro.id}
                         type="button"
-                        aria-current={filtroAtivo === filtro.id ? "page" : undefined}
+                        aria-current={!listaCategoria && filtroAtivo === filtro.id ? "page" : undefined}
                         onClick={() => {
                             aoSelecionarFiltro(filtro.id);
                             aoFecharMenu();
@@ -63,6 +64,17 @@ export function BarraLateral({
                         )}
                     </button>
                 ))}
+            </nav>
+            <div className="cabecalho-categorias"><p className="rotulo-navegacao">CATEGORIAS</p><button type="button" className="botao-texto" aria-label="Criar categoria" onClick={() => aoGerenciarCategoria(null)}>+</button></div>
+            <nav aria-label="Categorias de tarefas" className="navegacao-categorias">
+                {categorias.map(c => <div className="linha-categoria" key={c.id}>
+                    <button type="button" className={`filtro-link${listaCategoria && categoriaAtiva === c.id ? " ativo" : ""}`} aria-current={listaCategoria && categoriaAtiva === c.id ? "page" : undefined} onClick={() => { aoSelecionarCategoria(c.id); aoFecharMenu(); }}>
+                        <span className="filtro-identidade"><span className="ponto-categoria" aria-hidden="true" style={{ backgroundColor: c.cor }} /><span>{c.nome}</span></span><span className="filtro-contagem">{c.quantidadeTarefas}</span>
+                    </button>
+                    <button className="acao-categoria" type="button" aria-label={`Editar categoria ${c.nome}`} onClick={() => aoGerenciarCategoria(c)}>✎</button>
+                    <button className="acao-categoria" type="button" aria-label={`Excluir categoria ${c.nome}`} onClick={() => aoGerenciarCategoria(c, true)}>×</button>
+                </div>)}
+                <button className={`filtro-link${listaCategoria && categoriaAtiva === "sem" ? " ativo" : ""}`} type="button" aria-current={listaCategoria && categoriaAtiva === "sem" ? "page" : undefined} onClick={() => { aoSelecionarCategoria("sem"); aoFecharMenu(); }}><span>Sem categoria</span><span className="filtro-contagem">{semCategoria}</span></button>
             </nav>
         </aside>
     );

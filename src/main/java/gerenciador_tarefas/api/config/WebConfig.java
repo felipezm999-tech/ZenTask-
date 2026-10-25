@@ -9,7 +9,7 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        for (String caminho : new String[]{"/tarefas", "/tarefas/**"}) {
+        for (String caminho : new String[]{"/tarefas", "/tarefas/**", "/categorias", "/categorias/**"}) {
             registry.addMapping(caminho)
                     .allowedOrigins("http://localhost:5173", "http://127.0.0.1:5173")
                     .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")

@@ -1,8 +1,10 @@
+import { SeletorCategoria } from "../categorias/SeletorCategoria";
+import { useCategorias } from "../../hooks/useCategorias";
 import { useRef, useState } from "react";
 import type { FormEvent, KeyboardEvent } from "react";
-import { mensagemErroDoCampo } from "../api/tarefas";
-import type { DadosTarefa, Prioridade, Tarefa } from "../types/tarefa";
-import { hojeLocal, isoDeDataLocal, rotuloDataEntrega } from "../utils/datas";
+import { mensagemErroDoCampo } from "../../api/tarefas";
+import type { DadosTarefa, Prioridade, Tarefa } from "../../types/tarefa";
+import { hojeLocal, isoDeDataLocal, rotuloDataEntrega } from "../../utils/datas";
 
 type ItemTarefaProps = {
     tarefa: Tarefa;
@@ -15,6 +17,9 @@ type ItemTarefaProps = {
 };
 
 export function ItemTarefa({ tarefa, aoConcluir, aoAtualizar, aoExcluir, editando, aoAbrirEdicao, aoFecharEdicao }: ItemTarefaProps) {
+    const { categorias } = useCategorias();
+    const categoria = categorias.find(c => c.id === tarefa.categoriaId);
+    const [categoriaEdicao, setCategoriaEdicao] = useState(tarefa.categoriaId);
     const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
     const [descricaoAberta, setDescricaoAberta] = useState(false);
     const [erro, setErro] = useState("");
@@ -24,6 +29,7 @@ export function ItemTarefa({ tarefa, aoConcluir, aoAtualizar, aoExcluir, editand
     const rascunho = useRef<DadosTarefa>(dadosDaTarefa(tarefa));
 
     function abrirEdicao() {
+        setCategoriaEdicao(tarefa.categoriaId);
         rascunho.current = dadosDaTarefa(tarefa);
         setErro("");
         setErrosCampos({});
@@ -62,19 +68,22 @@ export function ItemTarefa({ tarefa, aoConcluir, aoAtualizar, aoExcluir, editand
     }
 
     function cancelar() {
+        if (salvando) return;
+        setCategoriaEdicao(tarefa.categoriaId);
         rascunho.current = dadosDaTarefa(tarefa);
         aoFecharEdicao();
         setErro("");
     }
 
     function tratarTecla(evento: KeyboardEvent<HTMLFormElement>) {
+        if (evento.nativeEvent.isComposing) return;
         if (evento.key === "Escape") {
             evento.preventDefault();
             cancelar();
         }
-        if (evento.key === "Enter" && (!(evento.target instanceof HTMLElement) || evento.target.tagName !== "TEXTAREA")) {
+        if (evento.key === "Enter" && evento.target instanceof HTMLInputElement) {
             evento.preventDefault();
-            void salvar();
+            formulario.current?.requestSubmit();
         }
     }
 
@@ -109,7 +118,7 @@ export function ItemTarefa({ tarefa, aoConcluir, aoAtualizar, aoExcluir, editand
     if (editando) {
         return (
             <form
-                className="item-tarefa item-editando liquid-glass"
+                className="item-tarefa item-editando"
                 ref={formulario}
                 onKeyDown={tratarTecla}
                 onSubmit={enviarEdicao}
@@ -118,6 +127,8 @@ export function ItemTarefa({ tarefa, aoConcluir, aoAtualizar, aoExcluir, editand
                 <input
                     id={`titulo-${tarefa.id}`}
                     name="titulo"
+                    required
+                    disabled={salvando}
                     className="campo-edicao titulo-edicao"
                     defaultValue={tarefa.titulo}
                     maxLength={120}
@@ -131,6 +142,7 @@ export function ItemTarefa({ tarefa, aoConcluir, aoAtualizar, aoExcluir, editand
                 <input
                     id={`descricao-${tarefa.id}`}
                     name="descricao"
+                    disabled={salvando}
                     className="campo-edicao descricao-edicao"
                     defaultValue={tarefa.descricao ?? ""}
                     maxLength={500}
@@ -144,6 +156,7 @@ export function ItemTarefa({ tarefa, aoConcluir, aoAtualizar, aoExcluir, editand
                 <select
                     id={`prioridade-${tarefa.id}`}
                     className="seletor-prioridade"
+                    disabled={salvando}
                     defaultValue={prioridadeValida(tarefa.prioridade)}
                     onChange={(evento) => {
                         if (ehPrioridade(evento.target.value)) rascunho.current.prioridade = evento.target.value;
@@ -160,6 +173,7 @@ export function ItemTarefa({ tarefa, aoConcluir, aoAtualizar, aoExcluir, editand
                     id={`data-entrega-${tarefa.id}`}
                     className="campo-edicao campo-data-edicao"
                     type="date"
+                    disabled={salvando}
                     defaultValue={rascunho.current.dataEntrega ?? ""}
                     onChange={(evento) => { rascunho.current.dataEntrega = evento.target.value || null; }}
                     aria-invalid={Boolean(errosCampos.dataEntrega)}
@@ -168,8 +182,9 @@ export function ItemTarefa({ tarefa, aoConcluir, aoAtualizar, aoExcluir, editand
                 {errosCampos.dataEntrega && <span className="erro-edicao" id={`erro-data-${tarefa.id}`} role="alert">{errosCampos.dataEntrega}</span>}
                 {errosCampos.prioridade && <span className="erro-edicao" id={`erro-prioridade-${tarefa.id}`} role="alert">{errosCampos.prioridade}</span>}
                 {erro && <span className="erro-edicao" id={`erro-tarefa-${tarefa.id}`} role="alert">{erro}</span>}
+                <SeletorCategoria valor={categoriaEdicao} desabilitado={salvando} aoAlterar={id => { setCategoriaEdicao(id); rascunho.current.categoriaId = id; }} />
                 <button className="botao-texto" type="submit" disabled={salvando}>Salvar</button>
-                <button className="botao-texto" type="button" onClick={cancelar}>Cancelar</button>
+                <button className="botao-texto" type="button" disabled={salvando} onClick={cancelar}>Cancelar</button>
             </form>
         );
     }
@@ -180,7 +195,7 @@ export function ItemTarefa({ tarefa, aoConcluir, aoAtualizar, aoExcluir, editand
     const tarefaAtrasada = !tarefa.concluido && Boolean(tarefa.dataEntrega && tarefa.dataEntrega < dataHoje);
 
     return (
-        <article className={`item-tarefa liquid-glass${tarefa.concluido ? " tarefa-concluida" : ""}${tarefaDeHoje ? " tarefa-hoje" : ""}${tarefaAtrasada ? " tarefa-atrasada" : ""}`}>
+        <article className={`item-tarefa${tarefa.concluido ? " tarefa-concluida" : ""}${tarefaDeHoje ? " tarefa-hoje" : ""}${tarefaAtrasada ? " tarefa-atrasada" : ""}`}>
             <input
                 className="checkbox-tarefa"
                 type="checkbox"
@@ -190,7 +205,7 @@ export function ItemTarefa({ tarefa, aoConcluir, aoAtualizar, aoExcluir, editand
                 aria-label={tarefa.concluido ? `Reabrir ${tarefa.titulo}` : `Concluir ${tarefa.titulo}`}
             />
             <div className="conteudo-tarefa">
-                <button className="titulo-tarefa" type="button" onClick={abrirEdicao}>
+                <button className="titulo-tarefa" type="button" disabled={salvando} onClick={abrirEdicao}>
                     <span>{tarefa.titulo || "Tarefa sem título"}</span>
                 </button>
                 {temDescricao && (
@@ -213,9 +228,11 @@ export function ItemTarefa({ tarefa, aoConcluir, aoAtualizar, aoExcluir, editand
                 const data = rotuloDataEntrega(tarefa.dataEntrega, tarefa.concluido);
                 return data && <time className={`data-entrega${data.vencida ? " vencida" : ""}`} dateTime={tarefa.dataEntrega ?? undefined}>{data.texto}</time>;
             })()}
-            <span className={`etiqueta-prioridade prioridade-${prioridadeValida(tarefa.prioridade).toLocaleLowerCase("pt-BR")}`}>
-                {rotuloPrioridade(tarefa.prioridade)}
-            </span>
+            <div className="selos-tarefa"><span className="selo-categoria"><span aria-hidden="true" className="ponto-categoria" style={{ backgroundColor: categoria?.cor ?? "#808080" }} />{categoria?.nome ?? "Sem categoria"}</span>
+                <span className={`etiqueta-prioridade prioridade-${prioridadeValida(tarefa.prioridade).toLocaleLowerCase("pt-BR")}`}>
+                    {rotuloPrioridade(tarefa.prioridade)}
+                </span>
+            </div>
             <div className="acoes-tarefa">
                 {confirmandoExclusao ? (
                     <span className="confirmacao-exclusao">
@@ -229,6 +246,7 @@ export function ItemTarefa({ tarefa, aoConcluir, aoAtualizar, aoExcluir, editand
                             className="botao-acao-tarefa"
                             type="button"
                             onClick={abrirEdicao}
+                            disabled={salvando}
                             aria-label={`Editar ${tarefa.titulo}`}
                             title="Editar tarefa"
                         >
@@ -238,6 +256,7 @@ export function ItemTarefa({ tarefa, aoConcluir, aoAtualizar, aoExcluir, editand
                             className="botao-acao-tarefa botao-excluir"
                             type="button"
                             onClick={() => setConfirmandoExclusao(true)}
+                            disabled={salvando}
                             aria-label={`Excluir ${tarefa.titulo}`}
                             title="Excluir tarefa"
                         >
@@ -269,6 +288,7 @@ function IconeEditar() {
 
 function dadosDaTarefa(tarefa: Tarefa): DadosTarefa {
     return {
+        categoriaId: tarefa.categoriaId,
         titulo: tarefa.titulo,
         descricao: tarefa.descricao ?? "",
         prioridade: prioridadeValida(tarefa.prioridade),

@@ -1,11 +1,14 @@
+import { CategoriasProvider, useCategorias } from "./hooks/useCategorias";
+import { ModalCategoria } from "./components/categorias/ModalCategoria";
+import type { Categoria, FiltroCategoria } from "./types/categoria";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BarraLateral } from "./components/BarraLateral";
-import { ListaTarefas } from "./components/ListaTarefas";
-import { CalendarioTarefas } from "./components/CalendarioTarefas";
+import { BarraLateral } from "./components/layout/BarraLateral";
+import { ListaTarefas } from "./components/tarefas/ListaTarefas";
+import { CalendarioTarefas } from "./components/calendario/CalendarioTarefas";
 import { useTarefas } from "./hooks/useTarefas";
 import type { FiltroTarefas } from "./types/filtros";
 import type { DadosTarefa, Tarefa } from "./types/tarefa";
-import { contarTarefas } from "./utils/filtrosTarefas";
+import { contarTarefas, filtrarPorCategoria } from "./utils/filtrosTarefas";
 
 const TITULOS: Record<FiltroTarefas, string> = {
     todas: "Todas",
@@ -17,7 +20,12 @@ const TITULOS: Record<FiltroTarefas, string> = {
     calendario: "Calendário"
 };
 
-export function App() {
+export function App() { return <CategoriasProvider><AppConteudo /></CategoriasProvider>; }
+function AppConteudo() {
+    const { categorias, erroCategorias, recarregarCategorias } = useCategorias();
+    const [categoriaAtiva, setCategoriaAtiva] = useState<FiltroCategoria>("todas");
+    const [listaCategoria, setListaCategoria] = useState(false);
+    const [modalCategoria, setModalCategoria] = useState<{ categoria: Categoria | null; excluir: boolean } | null>(null);
     const [filtro, setFiltro] = useState<FiltroTarefas>("todas");
     const [menuAberto, setMenuAberto] = useState(false);
     const [tema, setTema] = useState<"light" | "dark">(
@@ -38,12 +46,16 @@ export function App() {
     } = useTarefas();
 
     function criar(dados: DadosTarefa): Promise<Tarefa> {
-        if (filtro !== "todas") {
+        if (filtro !== "todas" || listaCategoria) {
             return Promise.reject(new Error("Novas tarefas só podem ser criadas na aba Todas."));
         }
         return criarTarefa(dados);
     }
 
+    const categoriasComContagem = categorias.map(c => ({ ...c, quantidadeTarefas: tarefas.filter(t => t.categoriaId === c.id).length }));
+    const tituloCategoria = categoriaAtiva === "sem" ? "Sem categoria" : categorias.find(c => c.id === categoriaAtiva)?.nome ?? "Categoria";
+    function selecionarFiltro(novo: FiltroTarefas) { setFiltro(novo); setListaCategoria(false); setCategoriaAtiva("todas"); }
+    const tarefasExibidas = filtrarPorCategoria(tarefas, categoriaAtiva);
     const quantidades = useMemo(() => contarTarefas(tarefas), [tarefas]);
 
     function alternarTema() {
@@ -69,12 +81,12 @@ export function App() {
         function tratarAtalho(evento: KeyboardEvent) {
             const alvo = evento.target;
             const digitando = alvo instanceof HTMLElement
-                && (alvo.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(alvo.tagName));
+                && (alvo.closest("dialog[open]") !== null || alvo.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(alvo.tagName));
             if (evento.key.toLocaleLowerCase("pt-BR") !== "n" || digitando || evento.metaKey || evento.ctrlKey || evento.altKey) {
                 return;
             }
             evento.preventDefault();
-            setFiltro("todas");
+            setFiltro("todas"); setListaCategoria(false); setCategoriaAtiva("todas");
             window.setTimeout(() => campoNovaTarefa.current?.focus(), 0);
         }
 
@@ -103,14 +115,20 @@ export function App() {
             <BarraLateral
                 filtroAtivo={filtro}
                 quantidades={quantidades}
-                aoSelecionarFiltro={setFiltro}
+                aoSelecionarFiltro={selecionarFiltro}
+                categorias={categoriasComContagem}
+                categoriaAtiva={categoriaAtiva}
+                listaCategoria={listaCategoria}
+                semCategoria={tarefas.filter(t => t.categoriaId === null).length}
+                aoSelecionarCategoria={id => { setCategoriaAtiva(id); setListaCategoria(true); setFiltro("todas"); }}
+                aoGerenciarCategoria={(categoria, excluir = false) => setModalCategoria({ categoria, excluir })}
                 menuAberto={menuAberto}
                 aoFecharMenu={() => setMenuAberto(false)}
             />
             <main className="conteudo-principal">
                 <header className="cabecalho-pagina">
                     <button
-                        className="botao-menu-movel liquid-glass"
+                        className="botao-menu-movel"
                         type="button"
                         aria-label="Abrir menu de navegação"
                         aria-expanded={menuAberto}
@@ -119,7 +137,7 @@ export function App() {
                         <span /><span /><span />
                     </button>
                     <div className="titulo-cabecalho">
-                        <h1>{TITULOS[filtro]}</h1>
+                        <h1>{listaCategoria ? tituloCategoria : TITULOS[filtro]}</h1>
                         <p className="resumo-tarefas">
                             {quantidades.concluidas > 0
                                 ? `${quantidades.concluidas} de ${quantidades.todas} concluídas`
@@ -134,7 +152,7 @@ export function App() {
                         })}
                     </time>
                     <button
-                        className="botao-tema liquid-glass"
+                        className="botao-tema"
                         type="button"
                         onClick={alternarTema}
                         aria-pressed={tema === "dark"}
@@ -145,6 +163,7 @@ export function App() {
                     </button>
                 </header>
 
+                {erroCategorias && <div className="aviso-operacao" role="alert">{erroCategorias}<button type="button" onClick={() => void recarregarCategorias()}>Tentar de novo</button></div>}
                 {aviso && (
                     <div className="aviso-operacao" role="status">
                         <span>{aviso}</span>
@@ -153,34 +172,42 @@ export function App() {
                 )}
 
                 <div className="coluna-lista">
+                    {!listaCategoria && !["todas", "calendario"].includes(filtro) && <div className="filtros-categoria" role="group" aria-label="Filtrar por categoria">
+                        {[{ id: "todas" as const, nome: "Todas as categorias", cor: "" }, ...categorias, { id: "sem" as const, nome: "Sem categoria", cor: "#808080" }].map(c => <button type="button" key={c.id} className={`chip-data${categoriaAtiva === c.id ? " selecionado" : ""}`} aria-pressed={categoriaAtiva === c.id} onClick={() => setCategoriaAtiva(c.id)}>{c.cor && <span className="ponto-categoria" aria-hidden="true" style={{ backgroundColor: c.cor }} />}{c.nome}</button>)}
+                    </div>}
+                    {listaCategoria && <div className="aviso-criacao"><p>Para criar uma tarefa, vá para a aba Todas</p><button className="botao-texto" type="button" onClick={() => selecionarFiltro("todas")}>Ir para Todas</button></div>}
                     {filtro === "calendario" ? (
                         <CalendarioTarefas
-                            tarefas={tarefas}
+                            tarefas={tarefasExibidas}
                             carregando={carregando}
                             erro={erro}
                             recarregar={() => { void recarregar(); }}
-                            aoSelecionarTodas={() => setFiltro("todas")}
+                            aoSelecionarTodas={() => selecionarFiltro("todas")}
                             atualizar={atualizar}
                             concluir={concluir}
                             excluir={excluir}
                         />
                     ) : (
                         <ListaTarefas
-                            tarefas={tarefas}
+                            key={listaCategoria ? `categoria-${categoriaAtiva}` : filtro}
+                            tarefas={tarefasExibidas}
                             filtro={filtro}
                             carregando={carregando}
                             erro={erro}
                             recarregar={() => { void recarregar(); }}
                             criar={criar}
-                            aoSelecionarTodas={() => setFiltro("todas")}
+                            aoSelecionarTodas={() => selecionarFiltro("todas")}
                             atualizar={atualizar}
                             concluir={concluir}
                             excluir={excluir}
+                            permitirCriacao={!listaCategoria}
+                            mensagemCategoria={listaCategoria ? `Nenhuma tarefa em ${tituloCategoria} ainda.` : undefined}
                             refNovaTarefa={campoNovaTarefa}
                         />
                     )}
                 </div>
             </main>
+            {modalCategoria && <ModalCategoria categoria={modalCategoria.categoria ? categoriasComContagem.find(c => c.id === modalCategoria.categoria?.id) ?? modalCategoria.categoria : null} excluir={modalCategoria.excluir} aoFechar={() => setModalCategoria(null)} aoSalvar={async excluida => { if (excluida !== undefined) { if (categoriaAtiva === excluida) selecionarFiltro("todas"); await recarregar(); } }} />}
         </div>
     );
 }

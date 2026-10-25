@@ -1,11 +1,18 @@
 export function dataLocalDeIso(valor: string): Date {
     const [ano, mes, dia] = valor.split("-").map(Number);
-    return new Date(ano, mes - 1, dia);
+    return criarDataLocal(ano, mes - 1, dia);
+}
+
+export function criarDataLocal(ano: number, mes: number, dia: number): Date {
+    const data = new Date(0);
+    data.setFullYear(ano, mes, dia);
+    data.setHours(0, 0, 0, 0);
+    return data;
 }
 
 export function isoDeDataLocal(data: Date): string {
     return [
-        data.getFullYear(),
+        String(data.getFullYear()).padStart(4, "0"),
         String(data.getMonth() + 1).padStart(2, "0"),
         String(data.getDate()).padStart(2, "0")
     ].join("-");
@@ -13,17 +20,17 @@ export function isoDeDataLocal(data: Date): string {
 
 export function hojeLocal(): Date {
     const agora = new Date();
-    return new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
+    return criarDataLocal(agora.getFullYear(), agora.getMonth(), agora.getDate());
 }
 
 export function adicionarDias(data: Date, quantidade: number): Date {
-    const resultado = new Date(data.getFullYear(), data.getMonth(), data.getDate());
+    const resultado = criarDataLocal(data.getFullYear(), data.getMonth(), data.getDate());
     resultado.setDate(resultado.getDate() + quantidade);
     return resultado;
 }
 
 export function diasDoMes(mes: Date): Date[] {
-    const primeiro = new Date(mes.getFullYear(), mes.getMonth(), 1);
+    const primeiro = criarDataLocal(mes.getFullYear(), mes.getMonth(), 1);
     const inicio = new Date(primeiro);
     inicio.setDate(1 - primeiro.getDay());
 

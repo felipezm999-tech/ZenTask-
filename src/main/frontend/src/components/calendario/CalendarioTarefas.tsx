@@ -1,8 +1,9 @@
+import { useCategorias } from "../../hooks/useCategorias";
 import { useMemo, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
-import { ItemTarefa } from "./ItemTarefa";
-import type { DadosTarefa, Tarefa } from "../types/tarefa";
-import { adicionarDias, dataLocalDeIso, diasDoMes, hojeLocal, isoDeDataLocal, mesmaData } from "../utils/datas";
+import { ItemTarefa } from "../tarefas/ItemTarefa";
+import type { DadosTarefa, Tarefa } from "../../types/tarefa";
+import { adicionarDias, criarDataLocal, dataLocalDeIso, diasDoMes, hojeLocal, isoDeDataLocal, mesmaData } from "../../utils/datas";
 
 type CalendarioTarefasProps = {
     tarefas: Tarefa[];
@@ -28,8 +29,9 @@ const DIAS_SEMANA = Array.from({ length: 7 }, (_, indice) =>
 );
 
 export function CalendarioTarefas(props: CalendarioTarefasProps) {
+    const { categorias } = useCategorias();
     const hoje = hojeLocal();
-    const [mesVisivel, setMesVisivel] = useState(() => new Date(hoje.getFullYear(), hoje.getMonth(), 1));
+    const [mesVisivel, setMesVisivel] = useState(() => criarDataLocal(hoje.getFullYear(), hoje.getMonth(), 1));
     const [diaAtivo, setDiaAtivo] = useState(() => isoDeDataLocal(hoje));
     const [diaFocado, setDiaFocado] = useState(() => isoDeDataLocal(hoje));
     const [tarefaEditando, setTarefaEditando] = useState<number | null>(null);
@@ -52,7 +54,7 @@ export function CalendarioTarefas(props: CalendarioTarefasProps) {
     }
 
     function moverMes(deslocamento: number) {
-        const proximo = new Date(mesVisivel.getFullYear(), mesVisivel.getMonth() + deslocamento, 1);
+        const proximo = criarDataLocal(mesVisivel.getFullYear(), mesVisivel.getMonth() + deslocamento, 1);
         const chave = isoDeDataLocal(proximo);
         setMesVisivel(proximo);
         focarDia(chave);
@@ -67,13 +69,15 @@ export function CalendarioTarefas(props: CalendarioTarefasProps) {
             const proximo = adicionarDias(data, deslocamento);
             focarDia(isoDeDataLocal(proximo));
             if (proximo.getMonth() !== mesVisivel.getMonth()) {
-                setMesVisivel(new Date(proximo.getFullYear(), proximo.getMonth(), 1));
+                setMesVisivel(criarDataLocal(proximo.getFullYear(), proximo.getMonth(), 1));
             }
         } else if (evento.key === "Enter" || evento.key === " ") {
             evento.preventDefault();
             setDiaAtivo(isoDeDataLocal(data));
         } else if (evento.key === "Escape") {
             evento.preventDefault();
+            const selecionado = dataLocalDeIso(diaAtivo);
+            setMesVisivel(criarDataLocal(selecionado.getFullYear(), selecionado.getMonth(), 1));
             focarDia(diaAtivo);
         }
     }
@@ -83,7 +87,7 @@ export function CalendarioTarefas(props: CalendarioTarefasProps) {
     const chaveMes = `${mesVisivel.getFullYear()}-${mesVisivel.getMonth()}`;
 
     return (
-        <section className="calendario liquid-glass" aria-label="Calendário de tarefas">
+        <section className="calendario" aria-label="Calendário de tarefas">
             <div className="cabecalho-calendario">
                 <h2>{FORMATADOR_MES.format(mesVisivel)}</h2>
                 <div className="controles-calendario">
@@ -96,7 +100,7 @@ export function CalendarioTarefas(props: CalendarioTarefasProps) {
                         <IconeSeta direcao="anterior" />
                     </button>
                     <button type="button" className="botao-texto" onClick={() => {
-                        setMesVisivel(new Date(hoje.getFullYear(), hoje.getMonth(), 1));
+                        setMesVisivel(criarDataLocal(hoje.getFullYear(), hoje.getMonth(), 1));
                         setDiaAtivo(isoDeDataLocal(hoje));
                         focarDia(isoDeDataLocal(hoje));
                     }}>Hoje</button>
@@ -116,6 +120,7 @@ export function CalendarioTarefas(props: CalendarioTarefasProps) {
                 key={chaveMes}
                 aria-label={`Calendário de ${FORMATADOR_MES.format(mesVisivel)}`}
             >
+                <div className="linha-calendario" role="row">
                 {DIAS_SEMANA.map((dia, indice) => (
                     <div
                         className={`cabecalho-dia-semana${indice === 0 || indice === 6 ? " fim-de-semana" : ""}`}
@@ -126,15 +131,15 @@ export function CalendarioTarefas(props: CalendarioTarefasProps) {
                         {dia}
                     </div>
                 ))}
-                {dias.map((data) => {
+                </div>
+                {Array.from({ length: 6 }, (_, semana) => (
+                    <div className="linha-calendario" role="row" key={semana}>
+                    {dias.slice(semana * 7, semana * 7 + 7).map((data) => {
                     const chave = isoDeDataLocal(data);
                     const tarefas = tarefasComData.get(chave) ?? [];
-                    const pendentes = tarefas.filter((tarefa) => !tarefa.concluido);
                     const foraDoMes = data.getMonth() !== mesVisivel.getMonth();
                     const selecionado = chave === diaAtivo;
                     const focado = chave === diaFocado;
-                    const vencida = pendentes.length > 0 && chave < isoDeDataLocal(hoje);
-                    const todasConcluidas = tarefas.length > 0 && pendentes.length === 0;
                     const fimDeSemana = data.getDay() === 0 || data.getDay() === 6;
                     return (
                         <button
@@ -157,15 +162,12 @@ export function CalendarioTarefas(props: CalendarioTarefasProps) {
                             onKeyDown={(evento) => tratarTeclaDia(evento, data)}
                         >
                             <span className="numero-dia">{data.getDate()}</span>
-                            {tarefas.length > 0 && (
-                                <span
-                                    className={`marcador-tarefa${vencida ? " marcador-vencido" : todasConcluidas ? " marcador-concluido" : ""}`}
-                                    aria-hidden="true"
-                                />
-                            )}
+                            <span className="marcadores-dia" aria-hidden="true">{[...new Set(tarefas.map(t => t.categoriaId))].slice(0, 5).map(id => <span key={id ?? "sem"} className="marcador-tarefa" style={{ backgroundColor: categorias.find(c => c.id === id)?.cor ?? "#808080" }} />)}</span>
                         </button>
                     );
-                })}
+                    })}
+                    </div>
+                ))}
             </div>
             <section className="tarefas-do-dia" aria-labelledby="titulo-tarefas-dia">
                 <h3 id="titulo-tarefas-dia">{tituloDia}</h3>

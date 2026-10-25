@@ -70,6 +70,7 @@ export function useTarefas(): ResultadoTarefas {
         const tarefa = tarefas.find((item) => item.id === id);
         if (!tarefa) return Promise.reject(new ErroApi("Esta tarefa não está mais na lista."));
         return atualizar(id, {
+            categoriaId: tarefa.categoriaId,
             titulo: tarefa.titulo,
             descricao: tarefa.descricao,
             prioridade: tarefa.prioridade,
@@ -103,6 +104,7 @@ function mesmosDados(atual: Tarefa, otimista: Tarefa): boolean {
         && atual.descricao === otimista.descricao
         && atual.prioridade === otimista.prioridade
         && atual.dataEntrega === otimista.dataEntrega
+        && atual.categoriaId === otimista.categoriaId
         && atual.concluido === otimista.concluido;
 }
 

@@ -1,0 +1,171 @@
+.calendario {
+    width: 100%;
+    padding: 20px;
+    color: var(--cor-texto-principal);
+}
+.calendario {
+    overflow: visible;
+}
+.cabecalho-calendario {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 12px;
+    color: var(--cor-texto-principal);
+}
+.cabecalho-calendario h2 {
+    margin: 0;
+    color: var(--cor-texto-principal);
+    font-size: 18px;
+    font-weight: 600;
+}
+.controles-calendario {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.botao-calendario {
+    display: grid;
+    width: 36px;
+    height: 36px;
+    place-items: center;
+    padding: 0;
+    border: 1px solid var(--cor-divisoria);
+    border-radius: 50%;
+    background: var(--cor-superficie);
+    color: var(--cor-texto-principal);
+    transition: background-color 200ms, transform 200ms;
+}
+.botao-calendario:hover {
+    transform: translateY(-1px);
+    background: var(--cor-hover-controle);
+}
+.botao-calendario svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.8;
+}
+.botao-calendario .seta-anterior {
+    transform: rotate(180deg);
+}
+.controles-calendario .botao-texto {
+    min-height: 36px;
+    padding: 0 12px;
+    border: 1px solid var(--cor-divisoria);
+    border-radius: 18px;
+    background: var(--cor-superficie);
+}
+.grade-calendario {
+    display: grid;
+    min-width: 280px;
+    grid-template-columns: repeat(7, minmax(40px, 1fr));
+    gap: 4px;
+    animation: calendario-entrada 180ms ease both;
+}
+@keyframes calendario-entrada {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+.cabecalho-dia-semana,
+.dia-calendario {
+    display: flex;
+    min-width: 0;
+    min-height: 40px;
+    aspect-ratio: 1;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 14px;
+}
+.cabecalho-dia-semana {
+    color: var(--cor-texto-secundario);
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+.cabecalho-dia-semana.fim-de-semana {
+    color: var(--cor-acento);
+}
+.dia-calendario {
+    position: relative;
+    flex-direction: column;
+    gap: 3px;
+    padding: 2px;
+    background: transparent;
+    color: var(--cor-texto-principal);
+    cursor: pointer;
+    transition: background-color 200ms, color 200ms, opacity 200ms;
+}
+.dia-calendario.fim-de-semana:not(.dia-hoje):not(.dia-selecionado) {
+    background: var(--cor-dia-fim-semana);
+}
+.dia-calendario:hover {
+    background: var(--cor-hover-controle);
+}
+.dia-calendario.fora-do-mes {
+    opacity: .4;
+}
+.dia-calendario.dia-hoje {
+    background: transparent;
+}
+.dia-calendario.dia-selecionado {
+    box-shadow: inset 0 0 0 1px var(--cor-acento);
+}
+.dia-calendario.dia-selecionado:not(.dia-hoje) {
+    background: var(--cor-fundo-dia-selecionado);
+}
+.dia-calendario:focus-visible {
+    z-index: 1;
+    outline: 2px solid var(--cor-foco);
+    outline-offset: 1px;
+}
+.numero-dia {
+    display: grid;
+    width: 30px;
+    height: 30px;
+    place-items: center;
+    border-radius: 50%;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+}
+.dia-calendario.dia-hoje .numero-dia {
+    background: var(--cor-fundo-dia-hoje);
+    color: var(--cor-texto-dia-hoje);
+}
+.marcador-tarefa {
+    width: 5px;
+    height: 5px;
+    flex: 0 0 5px;
+    border-radius: 50%;
+    background: var(--cor-acento);
+}
+.tarefas-do-dia {
+    margin-top: 29px;
+}
+.tarefas-do-dia h3 {
+    margin: 0 0 12px;
+    color: var(--cor-texto-principal);
+    font-size: 15px;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+@media (prefers-reduced-motion: reduce) {
+    .botao-tema svg,
+    .grade-calendario {
+        animation: none;
+    }
+}
+/* As linhas semânticas mantêm as sete colunas da grade visual. */
+.linha-calendario {
+    display: contents;
+}

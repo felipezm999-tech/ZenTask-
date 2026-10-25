@@ -1,6 +1,10 @@
 package gerenciador_tarefas.api.model;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.Column;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -12,10 +16,18 @@ public class TarefaModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String titulo;
+    @Column(length = 500)
     private String descricao;
     private boolean concluido;
     private String prioridade = "MEDIA";
     private String dataEntrega;
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "categoria_id", nullable = true)
+    private Categoria categoria;
+
+    public Categoria getCategoria() { return categoria; }
+    public void setCategoria(Categoria categoria) { this.categoria = categoria; }
+
 
     public TarefaModel() {
     }
